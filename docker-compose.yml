@@ -1,0 +1,109 @@
+# ============================================================================
+#  AulaFix · docker-compose.yml
+# ============================================================================
+#  MÓDULO: 0613 · Servidor
+#  HITO:   Hito 1 & Entrega final (opcional pero clave para Sobresaliente)
+#  RA:     0613-RA1 (Sobresaliente 9-10: funciona también con Docker: PHP + MySQL
+#          y justifica la elección de tecnologías en el README)
+#
+#  ¿QUÉ ES ESTE FICHERO?
+#  Define la orquestación de contenedores para desplegar el entorno completo
+#  de AulaFix sin necesidad de instalar PHP ni MySQL manualmente en el host:
+#    1. Servicio Web / PHP 8.3 (con Apache o CLI y extensión pdo_mysql).
+#    2. Servicio Base de Datos MySQL 8.0 (con volumen persistente).
+#    3. Servicio phpMyAdmin (interfaz web gráfica para administrar la BD).
+#
+# ----------------------------------------------------------------------------
+#  REQUISITOS (según el enunciado y la rúbrica)
+# ----------------------------------------------------------------------------
+#  [ ] Versión de PHP: 8.3.
+#  [ ] Versión de MySQL: 8.0 (con motor InnoDB y soporte utf8mb4).
+#  [ ] DocumentRoot del servidor web apuntando a la carpeta /public.
+#      (Principio de seguridad: config.php, includes/ y database/ NO deben ser
+#      accesibles directamente desde la URL del navegador).
+#  [ ] Comunicación interna: la aplicación PHP debe conectarse a MySQL
+#      usando el nombre del servicio (por ejemplo host: "db"), que se pasa
+#      por variable de entorno (DB_HOST=db).
+#  [ ] Persistencia: el volumen de MySQL debe evitar que los datos se borren
+#      al reiniciar los contenedores.
+#
+# ----------------------------------------------------------------------------
+#  ESTRUCTURA DE REFERENCIA (Plantilla comentada para que la completéis)
+# ----------------------------------------------------------------------------
+#
+#  services:
+#    app:
+#      image: php:8.3-apache
+#      container_name: aulafix_app
+#      ports:
+#        - "8000:80"
+#      volumes:
+#        - ./:/var/www/html
+#      environment:
+#        - DB_HOST=db
+#        - DB_PORT=3306
+#        - DB_NAME=aulafix
+#        - DB_USER=aulafix_user
+#        - DB_PASS=aulafix_pass
+#      depends_on:
+#        - db
+#
+#    db:
+#      image: mysql:8.0
+#      container_name: aulafix_db
+#      restart: always
+#      environment:
+#        MYSQL_ROOT_PASSWORD: root_password_segura
+#        MYSQL_DATABASE: aulafix
+#        MYSQL_USER: aulafix_user
+#        MYSQL_PASSWORD: aulafix_pass
+#      ports:
+#        - "3306:3306"
+#      volumes:
+#        - db_data:/var/lib/mysql
+#
+#    phpmyadmin:
+#      image: phpmyadmin/phpmyadmin:latest
+#      container_name: aulafix_pma
+#      ports:
+#        - "8081:80"
+#      environment:
+#        - PMA_HOST=db
+#        - PMA_PORT=3306
+#      depends_on:
+#        - db
+#
+#  volumes:
+#    db_data:
+#
+# ----------------------------------------------------------------------------
+#  COMANDOS ÚTILES PARA LA TERMINAL
+# ----------------------------------------------------------------------------
+#  - Levantar contenedores:
+#      docker compose up -d
+#  - Ver estado de los contenedores:
+#      docker compose ps
+#  - Ejecutar el script de instalación de la BD dentro del contenedor:
+#      docker compose exec app php database/instalar.php
+#  - Ver logs en tiempo real:
+#      docker compose logs -f app
+#  - Parar contenedores:
+#      docker compose down
+#
+# ----------------------------------------------------------------------------
+#  PISTAS
+# ----------------------------------------------------------------------------
+#  - Extensión PDO MySQL: La imagen oficial `php:8.3-apache` no trae activo el
+#    driver `pdo_mysql` por defecto. Podéis usar un `Dockerfile` sencillo
+#    con `RUN docker-php-ext-install pdo_mysql` o configurarlo con un script.
+#  - DocumentRoot de Apache: Por defecto apunta a `/var/www/html`. Para que apunte
+#    a `/var/www/html/public`, se puede cambiar la variable de entorno
+#    `APACHE_DOCUMENT_ROOT=/var/www/html/public` o modificar el VirtualHost.
+#
+# ----------------------------------------------------------------------------
+#  TECNOLOGÍAS Y CONCEPTOS PARA INVESTIGAR
+# ----------------------------------------------------------------------------
+#  - Docker Compose Specification: https://docs.docker.com/compose/compose-file/
+#  - Imagen oficial de PHP en Docker Hub: https://hub.docker.com/_/php
+#  - Imagen oficial de MySQL en Docker Hub: https://hub.docker.com/_/mysql
+

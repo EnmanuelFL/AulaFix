@@ -1,0 +1,68 @@
+-- ============================================================================
+--  AulaFix · database/esquema.sql
+-- ============================================================================
+--  MÓDULO: 0613 · Servidor
+--  HITO:   Entrega final
+--  RA:     0613-RA6 (restricciones en las tablas: UNIQUE, ENUM, claves foráneas)
+--
+--  ¿QUÉ ES ESTE FICHERO?
+--  El script SQL (MySQL 8) que crea las 4 tablas de la aplicación. No lleva
+--  datos: los datos de ejemplo los mete database/instalar.php, que ejecuta
+--  este fichero primero.
+--
+-- ----------------------------------------------------------------------------
+--  REQUISITOS (según el enunciado, apartado 4.2)
+-- ----------------------------------------------------------------------------
+--  [ ] Comentario de cabecera: qué hace el script.
+--  [ ] Tabla usuarios:    id, nombre, email, clave_hash, rol, creado_en
+--        · email ÚNICO (UNIQUE)
+--        · rol solo puede ser 'alumno' o 'profesor'
+--  [ ] Tabla equipos:     id, codigo, descripcion
+--        · codigo ÚNICO (PC-01, PROY-01, IMP-01...)
+--  [ ] Tabla incidencias: id, equipo_id, usuario_id, categoria, prioridad,
+--                         descripcion, estado, creada_en, actualizada_en
+--        · claves foráneas hacia equipos y usuarios
+--        · categoria: hardware · software · red · otro
+--        · prioridad: baja · media · alta
+--        · estado:    abierta · en_curso · resuelta
+--  [ ] Tabla historial:   id, incidencia_id, usuario_id, estado_anterior,
+--                         estado_nuevo, comentario, creado_en
+--        · se borra con su incidencia → ON DELETE CASCADE
+--  [ ] Comentad las consultas / tablas (la rúbrica lo exige para el Notable).
+--
+-- ----------------------------------------------------------------------------
+--  PISTAS
+-- ----------------------------------------------------------------------------
+--  - Orden de creación: primero las tablas que NO dependen de nadie
+--    (usuarios, equipos), luego incidencias y por último historial.
+--    ¿Por qué? Pensad qué pasa si creáis una clave foránea hacia una tabla
+--    que todavía no existe.
+--  - Si el script empieza borrando las tablas (DROP TABLE IF EXISTS ...)
+--    para poder reinstalar, el orden de borrado es el INVERSO. ¡Cuidado!
+--    Esto elimina los datos: solo tiene sentido en desarrollo.
+--  - Los "valores permitidos" se pueden forzar con ENUM('a','b','c').
+--    Tienen que coincidir EXACTAMENTE con las listas de config.php.
+--  - Motor InnoDB (es el que admite claves foráneas y transacciones) y
+--    juego de caracteres utf8mb4.
+--  - clave_hash: un hash Argon2id ocupa ~100 caracteres y puede cambiar en el
+--    futuro. ¿Qué tamaño de VARCHAR recomienda la documentación de
+--    password_hash()?
+--  - Fechas: DATETIME o TIMESTAMP con DEFAULT CURRENT_TIMESTAMP.
+--    Para actualizada_en, investigad ON UPDATE CURRENT_TIMESTAMP.
+--  - ¿Qué debe pasar con las incidencias si se borra un usuario o un equipo?
+--    (ON DELETE RESTRICT / CASCADE / SET NULL). Decididlo y comentad por qué.
+--  - Probad el script en phpMyAdmin o con la consola de MySQL antes de
+--    meterlo en instalar.php.
+--
+-- ----------------------------------------------------------------------------
+--  TECNOLOGÍAS Y CONCEPTOS PARA INVESTIGAR
+-- ----------------------------------------------------------------------------
+--  - CREATE TABLE (MySQL 8): https://dev.mysql.com/doc/refman/8.0/en/create-table.html
+--  - Tipo ENUM: https://dev.mysql.com/doc/refman/8.0/en/enum.html
+--  - FOREIGN KEY y ON DELETE CASCADE:
+--    https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+--  - Restricción UNIQUE e índices
+--  - DEFAULT CURRENT_TIMESTAMP / ON UPDATE CURRENT_TIMESTAMP
+--  - Motor InnoDB y charset utf8mb4 (COLLATE utf8mb4_unicode_ci o utf8mb4_0900_ai_ci)
+-- ============================================================================
+

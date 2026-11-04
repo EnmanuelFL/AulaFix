@@ -1,0 +1,55 @@
+/*
+ * ============================================================================
+ *  AulaFix · public/css/estilos.css
+ * ============================================================================
+ *  MÓDULO: 0612 · Cliente & 0613 · Servidor
+ *  HITO:   Hito 1 & Entrega final
+ *  RA:     0612-RA6 (clases CSS para los estados, no estilos en línea)
+ *
+ *  ¿QUÉ ES ESTE FICHERO?
+ *  La hoja de estilos principal de la aplicación. Da formato a toda la web:
+ *  cabecera, navegación, tarjetas de resumen, pestañas, tabla, formularios,
+ *  mensajes de error y estados de las incidencias.
+ *
+ * ----------------------------------------------------------------------------
+ *  REQUISITOS (según el enunciado y la rúbrica)
+ * ----------------------------------------------------------------------------
+ *  [ ] Comentario de cabecera explicando el propósito del archivo.
+ *  [ ] Clases CSS para los estados y prioridades (PROHIBIDO usar estilos en
+ *      línea style="..." desde JavaScript según la rúbrica de 0612-RA6):
+ *        · .urgente           → resalta incidencias urgentes sin resolver.
+ *        · .estado-abierta, .estado-en-curso, .estado-resuelta
+ *        · .prioridad-baja, .prioridad-media, .prioridad-alta
+ *  [ ] Estilos para las tarjetas de resumen (grid o flexbox).
+ *  [ ] Estilos para las pestañas de navegación del panel:
+ *        · Indicador visual de pestaña activa (usando [aria-selected="true"] o clase .activa).
+ *  [ ] Estilos para la tabla interactiva:
+ *        · Cabeceras ordenables: cursor pointer e indicadores de ordenación
+ *          ([aria-sort="ascending"], [aria-sort="descending"]).
+ *  [ ] Estilos para los formularios (registro, login, nueva incidencia):
+ *        · .error o [aria-invalid="true"] para campos con fallos y mensajes en rojo.
+ *        · .mensaje-flash para notificaciones de éxito/alerta.
+ *  [ ] Clase de accesibilidad para lectores de pantalla: .sr-only / .visually-hidden
+ *      (oculta visualmente pero mantiene el texto para aria-live).
+ *
+ * ----------------------------------------------------------------------------
+ *  PISTAS
+ * ----------------------------------------------------------------------------
+ *  - Usad Selectores de Atributos: en lugar de inventar mil clases, podéis
+ *    estilar directamente estados ARIA:
+ *      button[role="tab"][aria-selected="true"] { font-weight: bold; border-bottom: 2px solid ...; }
+ *      th[aria-sort="ascending"]::after { content: " ▲"; }
+ *      th[aria-sort="descending"]::after { content: " ▼"; }
+ *  - Las incidencias urgentes deben llamar la atención visualmente (por ejemplo,
+ *    fondo suave rojizo o borde lateral rojo intenso en la fila <tr>).
+ *  - Mantened un diseño limpio y accesible: contraste suficiente entre texto y fondo.
+ *
+ * ----------------------------------------------------------------------------
+ *  TECNOLOGÍAS Y CONCEPTOS PARA INVESTIGAR
+ * ----------------------------------------------------------------------------
+ *  - Selectores de atributos CSS: https://developer.mozilla.org/es/docs/Web/CSS/Attribute_selectors
+ *  - Patrón de pestaña accesible con WAI-ARIA (role="tablist", role="tab")
+ *  - Clase .visually-hidden (Bootstrap / Tailwind pattern) para lectores de pantalla
+ *  - CSS Flexbox y CSS Grid layout
+ */
+
