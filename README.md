@@ -17,7 +17,7 @@
 
 > Proyecto Intermodular para **0612 (Desarrollo Web en Entorno Cliente)** y **0613 (Desarrollo Web en Entorno Servidor)**  
 > 2.º curso CFGS Desarrollo de Aplicaciones Web (DAW) · Comunidad de Madrid · LOMLOE-FP  
-> **Autores:** [Nombre Alumno 1] y [Nombre Alumno 2]
+> **Autores:** Enmanuel Feliciano  y German Villar
 
 ---
 
