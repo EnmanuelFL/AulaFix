@@ -1,4 +1,5 @@
-<?php
+<?php declare(strict_types= 1);
+
 /*
  * ============================================================================
  *  AulaFix · config.php
@@ -58,3 +59,20 @@
  *  - ¿Por qué utf8mb4 y no utf8 en MySQL? (caracteres de 4 bytes, emojis)
  */
 
+// Aqui usamos las variables de entorno del .env para que el servidor sepa 
+// donde conectarse y con que usuario, si no existe ninguna variable de entorno
+// se usaran las que estan por defecto
+$env = file_exists(__DIR__ . '/.env') ? (parse_ini_file(__DIR__ . '/.env') ?: []) : [];
+define('DB_HOST', $env['DB_HOST'] ?? (getenv('DB_HOST') ?: '127.0.0.1'));
+define('DB_USER', $env['DB_USER'] ?? (getenv('DB_USER') ?: 'root'));
+define('DB_PASS', $env['DB_PASS'] ?? (getenv('DB_PASS') ?: ''));
+define('DB_NAME', $env['DB_NAME'] ?? (getenv('DB_NAME') ?: 'aulafix'));
+define('DB_PORT', $env['DB_PORT'] ?? (getenv('DB_PORT') ?: '3306'));
+define('DB_CHARSET', $env['DB_CHARSET'] ?? (getenv('DB_CHARSET') ?: 'utf8mb4'));
+
+// Aqui se definen las listas blancas
+const CATEGORIAS = ['hardware','software','red','otro'];
+const PRIORIDADES = ['baja', 'media', 'alta'];
+const ESTADOS = ['abierta', 'en_curso','resuelta'];
+const ROLES = ['alumno', 'profesor'];
+const COOKIES_RECORDAR_DIAS = 30;
