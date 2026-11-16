@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types= 1);
 /*
  * ============================================================================
  *  AulaFix · includes/funciones.php
@@ -85,4 +85,128 @@
  *  - CSRF (OWASP): https://owasp.org/www-community/attacks/csrf
  *  - XSS (OWASP): https://owasp.org/www-community/attacks/xss/
  */
+/** 
+ * Escapa un texto antes de escribirlo en el HTML. 
+ * Evita que un usuario meta etiquetas o scripts en la página (XSS). 
+ * 
+ * @param mixed $valor del texto que se va a mostrar. 
+ * @return string Texto seguro para HTML. 
+ */ 
+function e(mixed $valor): string 
+{ 
+    return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8'); 
+}
 
+/**
+ * Parametros que se usaran en las funciones jsonSeguro e iniciarSesion
+ * @param mixed $datos
+ * @return string|void para devolver falso o verdadero mediante las funciones 
+ */
+function jsonSeguro(mixed $datos): string{
+    return json_encode($datos, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
+}
+/**
+ * Inicia la sesión con parámetros seguros
+ * @return string|void para devolver falso o verdadero mediante las funciones 
+ */
+function iniciarSesion(): void{
+    if (session_status() === PHP_SESSION_NONE){
+        session_set_cookie_params([
+            'lifetime' => 0, // Duración de la sesión en segundos (30 días)
+            'path' => '/', // Ruta de la sesión
+            'domain' => '', // Dominio de la sesión
+            'secure' => false, // Solo se envía por HTTPS
+            'httponly' => true, // Protege la cookie de JavaScript
+            'samesite' => 'Lax' // Protege la cookie de ataques CSRF
+        ]);
+        session_start();
+    }
+}
+
+/**
+ * verifica el inicio de sesion
+ * @return string
+ */
+function tokenCsrf(): string{
+    iniciarSesion();
+    if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf'];
+}
+
+/**
+ * /valida el token CSRF recibido y corta la petición si no coincide
+ * @param string $token
+ * @return void
+ */
+function verificarCsrf(string $token): void{
+    iniciarSesion();
+    $esperado = ($_SESSION['csrf'] ?? '');
+    if ($esperado === '' || !hash_equals($esperado, $token)) {
+        http_response_code(403);
+        exit('Token CSRF no valido.');
+    }
+}
+
+/**
+ * redirige con codigo HTTP 303 y detiene la ejecucion
+ * @param string $url
+ * @return never
+ */
+function redirigir(string $url): never {
+    header("Location: $url", true, 303);
+    exit;
+}
+
+/** Guarda un mensaje de aviso justo antes de redirigir para mostrarlo en la pagina de destino 
+ * @param string $mensaje
+ * @return void
+ * 
+ */
+function ponerFlash(string $mensaje): void{
+    iniciarSesion();
+    $_SESSION['flash'] = $mensaje;
+}
+
+/** lee el mensaje de flash para mostralo una sola vez y lo borra al instante para que no 
+ * reaparezca al recargar
+ * @return ?string (el ? delante de string significa: puede devolver un string o null).
+ * 
+ */
+function obtenerFlash(): ?string{
+    iniciarSesion();
+    if (!isset($_SESSION['flash'])){
+        return null;
+    }
+    $mensaje = ($_SESSION['flash']); // Guarda el texto en una variable temporal antes de borrarlo.
+    unset($_SESSION['flash']); // Borra 'flash' de $_SESSION para que no salga dos veces.
+    return $mensaje;
+}
+
+/** lee un campo de $_POST como string recortado (sin avisos si no existe)
+ * @param string $campo
+ * @return string
+ */
+function leerPost(string $campo): string{
+    return trim((string)($_POST[$campo] ?? ''));
+}
+/** Comprueba que un texto tenga un minimo y maximo de caracteres reales
+ * @param string $texto
+ * @param int $min
+ * @param int $max
+ * @return bool
+ */
+function longitudValida(string $texto, int $min, int $max): bool{
+    $longitud = mb_strlen($texto,'UTF-8');
+    return $longitud >= $min && $longitud <= $max;
+}
+
+/** Verifica que categoria, prioridad o estado sea uno de los valores permitidos de config.php
+ *  @param string $valor
+ * @param array $permitidos
+ * @return bool
+ */
+function enListaBlanca(string $valor, array $permitidos): bool{
+    return in_array($valor, $permitidos, true);
+}
