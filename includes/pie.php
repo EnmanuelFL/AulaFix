@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types= 1);
 /*
  * ============================================================================
  *  AulaFix · includes/pie.php
@@ -43,4 +43,12 @@
  *  - Diferencias entre script normal, defer, async y module
  *  - Elemento <footer> (MDN)
  */
-
+$scripts = $scripts ?? [];
+?>
+</main>
+<footer><p>AulaFix · Proyecto</p></footer>
+<?php foreach($scripts as $src): ?>
+    <script type="module" src="<?=e($src)?>"></script>
+<?php endforeach; ?>    
+</body>
+</html>

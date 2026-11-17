@@ -1,61 +1,109 @@
-<?php
+<?php declare(strict_types=1);
 /*
  * ============================================================================
  *  AulaFix · public/login.php
  * ============================================================================
- *  MÓDULO: 0613 · Servidor
- *  HITO:   Entrega final
- *  RA:     0613-RA4 (password_verify, regenerar sesión, cookie «recordar»,
- *          mismo mensaje de error, cookie de sesión segura)
- *
- *  ¿QUÉ ES ESTE FICHERO?
- *  La página para iniciar sesión. Muestra el formulario (GET) y comprueba
- *  el correo y la contraseña (POST). Si todo va bien, guarda al usuario en la
- *  sesión y lo manda al listado de incidencias.
- *
- * ----------------------------------------------------------------------------
- *  REQUISITOS (según el enunciado, apartado 3.2 y rúbrica RA4)
- * ----------------------------------------------------------------------------
- *  [ ] declare(strict_types=1); y comentario de cabecera.
- *  [ ] Formulario POST con correo, contraseña, casilla «Recordar mi correo»
- *      y token CSRF.
- *  [ ] Comprobar la contraseña con password_verify().
- *  [ ] El MISMO mensaje de error si el correo no existe o si la contraseña es
- *      incorrecta (Sobresaliente). Por ejemplo: «Correo o contraseña incorrectos».
- *  [ ] Al entrar: REGENERAR el identificador de sesión.
- *  [ ] Guardar en la sesión solo lo necesario (id, nombre, rol).
- *  [ ] Casilla «Recordar mi correo»: guarda SOLO el correo en una cookie
- *      durante 30 días, con atributos seguros.
- *  [ ] Si la cookie existe, el campo correo aparece ya relleno (escapado con e()).
- *  [ ] Si la casilla NO se marca, borrar la cookie si existía.
- *  [ ] Tras un login correcto: redirigir (PRG) a incidencias.php.
- *  [ ] Comentar el PORQUÉ de cada medida de seguridad (lo exige la rúbrica).
- *
- * ----------------------------------------------------------------------------
- *  PISTAS
- * ----------------------------------------------------------------------------
- *  - session_regenerate_id(true): PREGUNTA DE DEFENSA → ¿qué ataque evita?
- *    (Investigad «fijación de sesión» / session fixation.)
- *  - ¿Por qué el mismo mensaje para los dos errores? Pensad en alguien que
- *    quiere averiguar qué correos están registrados.
- *  - ¿Por qué NO se guarda la contraseña (ni el hash) en la cookie ni en la
- *    sesión?
- *  - setcookie() con array de opciones: expires, path, httponly, samesite
- *    (y secure si usáis HTTPS). Hay un ejemplo en los apuntes de la Unidad 4
- *    (cookie 'tema_preferido').
- *  - Borrar una cookie = volver a enviarla con una fecha de caducidad pasada.
- *  - setcookie() también envía una cabecera: tiene que ir ANTES de cualquier HTML.
- *  - Una casilla (checkbox) desmarcada NO se envía en $_POST. ¿Cómo lo comprobáis?
- *  - Extra: password_needs_rehash() permite actualizar hashes antiguos.
- *
- * ----------------------------------------------------------------------------
- *  TECNOLOGÍAS Y CONCEPTOS PARA INVESTIGAR
- * ----------------------------------------------------------------------------
- *  - password_verify: https://www.php.net/manual/es/function.password-verify.php
- *  - session_regenerate_id: https://www.php.net/manual/es/function.session-regenerate-id.php
- *  - setcookie (opciones httponly, samesite, secure): https://www.php.net/manual/es/function.setcookie.php
- *  - $_COOKIE
- *  - Ataques: fijación de sesión, enumeración de usuarios
- *  - Atributos de cookies (MDN): https://developer.mozilla.org/es/docs/Web/HTTP/Cookies
+ *  Inicio de sesión: comprueba correo y contraseña con password_verify(), regenera el id de
+ *  sesión al entrar y, si se marca la casilla, recuerda SOLO el correo en una cookie 30 días.
  */
 
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/funciones.php';
+require_once __DIR__ . '/../includes/db.php';
+
+const COOKIE_EMAIL = 'recordar_email';
+
+if (usuarioActual() !== null) {
+    redirigir('incidencias.php');
+}
+
+$https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+$errores = [];
+
+// Si el navegador recuerda el correo, el campo aparece relleno (solo si el valor es un correo válido)
+$recordado = (string) ($_COOKIE[COOKIE_EMAIL] ?? '');
+$datos = ['email' => emailValido($recordado) ? $recordado : '', 'recordar' => $recordado !== ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarCsrf(leerPost('csrf'));
+
+    $datos['email']    = aMinusculas(leerPost('email'));
+    $datos['recordar'] = isset($_POST['recordar']);
+    $clave = (string) ($_POST['clave'] ?? '');
+
+    $usuario = buscarUsuarioPorEmail($datos['email']);
+
+    // MISMO mensaje si el correo no existe o si la contraseña es incorrecta:
+    // así nadie puede averiguar qué correos están registrados (enumeración de usuarios)
+    if ($usuario === null || !password_verify($clave, $usuario['clave_hash'])) {
+        $errores['general'] = 'Correo o contraseña incorrectos.';
+    } else {
+        iniciarSesionUsuario($usuario); // aquí se regenera el id de sesión
+
+        if ($datos['recordar']) {
+            // Cookie con el correo (nunca la contraseña): HttpOnly impide leerla desde JavaScript
+            // y SameSite=Lax evita que se envíe en peticiones desde otras webs
+            setcookie(COOKIE_EMAIL, $datos['email'], [
+                'expires'  => time() + COOKIES_RECORDAR_DIAS * 24 * 60 * 60,
+                'path'     => '/',
+                'secure'   => $https,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        } elseif (isset($_COOKIE[COOKIE_EMAIL])) {
+            // Si ya no quiere que se recuerde, se borra enviándola con una fecha pasada
+            setcookie(COOKIE_EMAIL, '', [
+                'expires'  => time() - 3600,
+                'path'     => '/',
+                'secure'   => $https,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        }
+
+        ponerFlash('Bienvenido/a, ' . $usuario['nombre'] . '.');
+        redirigir('incidencias.php');
+    }
+}
+
+$titulo = 'Iniciar sesión';
+$scripts = [];
+require_once __DIR__ . '/../includes/cabecera.php';
+?>
+
+<h1>Iniciar sesión</h1>
+
+<?php if (isset($_GET['salida'])): ?>
+    <p class="mensaje-flash">Has cerrado la sesión.</p>
+<?php endif; ?>
+
+<?php if (isset($errores['general'])): ?>
+    <p class="error"><?= e($errores['general']) ?></p>
+<?php endif; ?>
+
+<form method="post" action="">
+    <input type="hidden" name="csrf" value="<?= e(tokenCsrf()) ?>">
+
+    <div>
+        <label for="email">Correo electrónico:</label><br>
+        <input type="email" id="email" name="email" value="<?= e($datos['email']) ?>" autocomplete="email">
+    </div>
+
+    <div>
+        <label for="clave">Contraseña:</label><br>
+        <input type="password" id="clave" name="clave" autocomplete="current-password">
+    </div>
+
+    <div>
+        <label>
+            <input type="checkbox" name="recordar" <?= $datos['recordar'] ? 'checked' : '' ?>>
+            Recordar mi correo
+        </label>
+    </div>
+
+    <button type="submit">Entrar</button>
+</form>
+
+<p>¿No tienes cuenta? <a href="registro.php">Regístrate</a></p>
+
+<?php require_once __DIR__ . '/../includes/pie.php'; ?>
