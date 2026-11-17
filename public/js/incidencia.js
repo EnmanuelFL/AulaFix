@@ -60,6 +60,7 @@ export class Incidencia {
         this.descripcion = datos.descripcion;
         this.estado = datos.estado;
         this.autor = datos.autor;
+        this.creada_en = datos.creada_en;
 
         // Convertimos la fecha recibida en un objeto Date.
         // La guardamos en un campo privado para proteger su acceso directo.
