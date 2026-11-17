@@ -1,59 +1,79 @@
 # AulaFix — Tablón de Incidencias del Aula
 
-Proyecto Intermodular para **0612 (Desarrollo Web en Entorno Cliente)** y **0613 (Desarrollo Web en Entorno Servidor)**  
-2.º curso CFGS Desarrollo de Aplicaciones Web (DAW) · Comunidad de Madrid · LOMLOE-FP  
-**Autores:** Enmanuel y Germán
+**Autores:** Enmanuel y Germán  
+**Ciclo:** 2.º CFGS Desarrollo de Aplicaciones Web (DAW) · Módulos 0612 (Cliente) y 0613 (Servidor)
 
 ---
 
-## 1. Requisitos Previos
+## 🎯 Finalidad del proyecto
 
-* **Opción local:** PHP 8.3+ (con `pdo_mysql`), MySQL 8.0+.
-* **Opción Docker:** Docker y Docker Compose (no requiere instalar PHP ni MySQL en el equipo).
+**AulaFix** es una aplicación web diseñada para gestionar las incidencias del aula de informática (ordenadores que no arrancan, proyectores averiados, problemas de red o software, impresoras sin tóner, etc.) evitando que los avisos se pierdan al comentarse de palabra.
+
+* **Alumnado:** inicia sesión, consulta el estado de las incidencias y registra nuevos avisos.
+* **Profesorado:** gestiona las incidencias, cambia su estado (`abierta` ➔ `en_curso` ➔ `resuelta`) dejando comentarios en el historial y puede eliminar registros.
+* **Panel interactivo:** muestra tarjetas de resumen en tiempo real, filtros por estado y prioridad, buscador instantáneo y tabla ordenable sin perder la compatibilidad si JavaScript está desactivado.
 
 ---
 
-## 2. Puesta en Marcha
+## 🛠️ Tecnologías utilizadas
 
-### Opción A · Con Docker (recomendada)
+![Tecnologías utilizadas](https://skillicons.dev/icons?i=php,mysql,js,html,css,docker,git)
 
-1. Clonar el repositorio y entrar en la carpeta del proyecto:
+* **Servidor (0613):** PHP 8.3 (tipado estricto, PDO, Argon2id, sesiones seguras, CSRF y PRG) + MySQL 8.
+* **Cliente (0612):** HTML5, CSS3 y JavaScript modular nativo (ES Modules, DOM, `localStorage`, `Intl`), sin librerías ni frameworks.
+* **Entorno y control de versiones:** Docker Compose y Git.
+
+---
+
+## 🚀 Cómo ejecutar el proyecto en cualquier ordenador
+
+### Opción 1 · Con Docker (recomendada)
+
+1. Clona el repositorio y entra en la carpeta:
    ```bash
    git clone https://github.com/EnmanuelFL/AulaFix.git
    cd AulaFix
    ```
-2. Levantar los contenedores (PHP 8.3 + Apache, MySQL 8.0 y phpMyAdmin):
+2. Levanta los contenedores (PHP 8.3 + Apache, MySQL 8 y phpMyAdmin):
    ```bash
    docker compose up -d --build
    ```
-3. Crear las tablas y cargar los datos de ejemplo:
+3. Crea las tablas y carga los datos de ejemplo:
    ```bash
    docker compose exec app php database/instalar.php
    ```
-4. Abrir en el navegador:
-   * Aplicación: **http://localhost:8080**
-   * phpMyAdmin: **http://localhost:8081** (servidor `db`, usuario `aulafix`, contraseña `aulafix`)
+4. Abre en el navegador:
+   * **Aplicación:** http://localhost:8080
+   * **phpMyAdmin:** http://localhost:8081 (servidor `db`, usuario `aulafix`, contraseña `aulafix`)
 
-### Opción B · En local (PHP + MySQL instalados en el equipo)
+### Opción 2 · En local (con PHP 8.3+ y MySQL 8 instalados)
 
-1. Configurar los datos de conexión en un fichero `.env` (opcional, no se sube a Git) o mediante variables de entorno (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`). Por defecto conecta a `127.0.0.1:3306`, BD `aulafix`, usuario `root`, clave vacía.
-2. Crear las tablas y datos de ejemplo:
+1. Clona el repositorio y entra en la carpeta `AulaFix`.
+2. Si tu MySQL local usa usuario/clave distintos a `root` sin contraseña, crea un archivo `.env` en la raíz con:
+   ```env
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_NAME=aulafix
+   DB_USER=tu_usuario
+   DB_PASS=tu_contraseña
+   ```
+3. Crea la base de datos y los datos de prueba:
    ```bash
    php database/instalar.php
    ```
-3. Arrancar el servidor integrado de PHP apuntando únicamente a `public/`:
+4. Arranca el servidor integrado de PHP apuntando a la carpeta pública:
    ```bash
    php -S localhost:8000 -t public
    ```
-4. Abrir **http://localhost:8000** en el navegador.
+5. Abre **http://localhost:8000** en tu navegador.
 
 ---
 
-## 3. Usuarios de Prueba
+## 👤 Usuarios de prueba
 
-Todos los usuarios creados por `database/instalar.php` usan la contraseña **`AulaFix2026`**:
+Todos los usuarios iniciales creados por `database/instalar.php` comparten la contraseña **`AulaFix2026`**:
 
-| Rol | Nombre | Correo electrónico | Contraseña |
+| Rol | Nombre | Correo | Contraseña |
 | :--- | :--- | :--- | :--- |
 | **Profesor** | Pablo Profesor | `profesor@aulafix.local` | `AulaFix2026` |
 | **Alumno** | Lucía Alumna | `lucia@aulafix.local` | `AulaFix2026` |
@@ -61,20 +81,9 @@ Todos los usuarios creados por `database/instalar.php` usan la contraseña **`Au
 
 ---
 
-## 4. Decisiones Técnicas y Seguridad
+## 🌿 Uso de ramas en Git
 
-* **Carpeta `public/` como única raíz accesible:** Tanto Apache en Docker como `php -S -t public` exponen únicamente `public/`. De este modo `config.php`, `includes/` y `database/` quedan fuera del alcance del navegador.
-* **Configuración centralizada sin contraseñas en Git:** `config.php` prioriza variables de entorno (`getenv()`), después `.env` local (ignorado en `.gitignore`) y por último valores por defecto. Así el mismo código funciona en local, en Docker y en el equipo del profesorado.
-* **Acceso a BD con PDO y sentencias preparadas:** Toda consulta usa `prepare()` y `execute()` con `ATTR_EMULATE_PREPARES => false` y `utf8mb4` para prevenir inyecciones SQL. El cambio de estado y el registro en `historial` van dentro de una **transacción** (`beginTransaction`, `FOR UPDATE`, `commit`, `rollBack`) para evitar estados inconsistentes.
-* **Prevención de XSS y JSON seguro:** Toda salida HTML en PHP pasa por `e()` (`htmlspecialchars` con `ENT_QUOTES` y `UTF-8`) al mostrar (no al guardar, para no corromper los datos originales). El JSON incrustado para el cliente usa `json_encode` con `JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT` para neutralizar etiquetas como `</script>`.
-* **Autenticación, sesiones y CSRF:** Contraseñas con `PASSWORD_ARGON2ID`, `session_regenerate_id(true)` al iniciar sesión (contra fijación de sesión), cookies con `HttpOnly` y `SameSite=Lax`, mismo mensaje de error en login (evita enumeración de usuarios), tokens CSRF comprobados con `hash_equals()`, patrón PRG (`303`) en todos los POST y validación de permisos en servidor (`403`).
-* **Cliente modular sin librerías y mejora progresiva:** JavaScript organizado en módulos ES (`<script type="module">`) sin frameworks. Si JavaScript está desactivado, la tabla HTML generada por PHP sigue funcionando.
-
----
-
-## 5. Declaración de Uso de Herramientas de IA
-
-Durante el desarrollo de este proyecto se ha utilizado asistencia de IA para:
-* Generar la estructura inicial de carpetas y plantillas de documentación/comentarios de cada archivo.
-* Apoyo y tutoría paso a paso en la sintaxis de PHP 8.3 (PDO, transacciones, sesiones, CSRF/PRG), configuración de Docker y resolución de errores de entorno.
-* Todo el código ha sido revisado, probado y comprendido por los autores para su defensa oral.
+* **`main`**: Rama principal con la versión estable y final lista para entrega y defensa.
+* **`dev`**: Rama de integración donde se unifican y prueban conjuntamente los avances de Servidor y Cliente antes de pasar a `main`.
+* **`dev-enma`**: Rama de desarrollo personal para la parte de Servidor (PHP, base de datos, sesiones, seguridad y Docker).
+* **`dev-german`**: Rama de desarrollo personal para la parte de Cliente (módulos JavaScript, manipulación del DOM y estilos CSS).
