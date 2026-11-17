@@ -87,3 +87,9 @@ Todos los usuarios iniciales creados por `database/instalar.php` comparten la co
 * **`dev`**: Rama de integración donde se unifican y prueban conjuntamente los avances de Servidor y Cliente antes de pasar a `main`.
 * **`dev-enma`**: Rama de desarrollo personal para la parte de Servidor (PHP, base de datos, sesiones, seguridad y Docker).
 * **`dev-german`**: Rama de desarrollo personal para la parte de Cliente (módulos JavaScript, manipulación del DOM y estilos CSS).
+
+---
+
+## 🤖 Uso de herramientas de IA
+
+Se ha utilizado asistencia de IA como apoyo para resolver dudas de sintaxis en PHP/JavaScript, estructurar la configuración inicial de Docker y redactar documentación; todo el código ha sido revisado, probado y comprendido por los autores para su defensa.
