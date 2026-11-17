@@ -1,98 +1,89 @@
-<!--
-============================================================================
- AulaFix · README.md
-============================================================================
- MÓDULO: 0612 · Cliente & 0613 · Servidor
- HITO:   Hito 1 & Entrega final
- RA:     0613-RA1 · 0612-RA1 (mínimo obligatorio para aprobar: apartado 8.3)
-
- ¿QUÉ ES ESTE FICHERO?
- La guía de bienvenida y manual de puesta en marcha del proyecto. El anexo
- y los criterios mínimos exigen que cualquier evaluador pueda arrancar el
- proyecto en su ordenador siguiendo ÚNICAMENTE este documento.
-============================================================================
--->
-
 # AulaFix — Tablón de Incidencias del Aula
 
-> Proyecto Intermodular para **0612 (Desarrollo Web en Entorno Cliente)** y **0613 (Desarrollo Web en Entorno Servidor)**  
-> 2.º curso CFGS Desarrollo de Aplicaciones Web (DAW) · Comunidad de Madrid · LOMLOE-FP  
-> **Autores:** Enmanuel Feliciano  y German Villar
+**Autores:** Enmanuel y Germán  
+**Ciclo:** 2.º CFGS Desarrollo de Aplicaciones Web (DAW) · Módulos 0612 (Cliente) y 0613 (Servidor)
 
 ---
 
-## 1. Requisitos Previos
+## 🎯 Finalidad del proyecto
 
-<!--
-Describir qué software se necesita tener instalado en el equipo del evaluador:
-- PHP 8.3 o superior (con extensiones pdo_mysql, mbstring).
-- MySQL 8.0 o MariaDB equivalente.
-- (Opcional) Docker y Docker Compose si se opta por arrancar con contenedores.
--->
+**AulaFix** es una aplicación web diseñada para gestionar las incidencias del aula de informática (ordenadores que no arrancan, proyectores averiados, problemas de red o software, impresoras sin tóner, etc.) evitando que los avisos se pierdan al comentarse de palabra.
 
-## 2. Puesta en Marcha (Paso a Paso)
+* **Alumnado:** inicia sesión, consulta el estado de las incidencias y registra nuevos avisos.
+* **Profesorado:** gestiona las incidencias, cambia su estado (`abierta` ➔ `en_curso` ➔ `resuelta`) dejando comentarios en el historial y puede eliminar registros.
+* **Panel interactivo:** muestra tarjetas de resumen en tiempo real, filtros por estado y prioridad, buscador instantáneo y tabla ordenable sin perder la compatibilidad si JavaScript está desactivado.
 
-<!--
-Explicar claramente cómo arrancar el proyecto:
+---
 
-Opción A: Entorno local nativo
-1. Clonar el repositorio.
-2. Configurar la base de datos en config.php (o mediante variables de entorno).
-3. Instalar la base de datos y cargar los datos de prueba:
-     php database/instalar.php
-4. Iniciar el servidor embebido de PHP apuntando a la carpeta public/:
-     php -S localhost:8000 -t public
-5. Abrir en el navegador: http://localhost:8000
+## 🛠️ Tecnologías utilizadas
 
-Opción B: Con Docker Compose (Sobresaliente 0613-RA1)
-1. Ejecutar: docker compose up -d
-2. Instalar datos: docker compose exec app php database/instalar.php
-3. Acceder en http://localhost:8000 (y phpMyAdmin en http://localhost:8081)
--->
+![Tecnologías utilizadas](https://skillicons.dev/icons?i=php,mysql,js,html,css,docker,git)
 
-## 3. Usuarios de Prueba para la Corrección
+* **Servidor (0613):** PHP 8.3 (tipado estricto, PDO, Argon2id, sesiones seguras, CSRF y PRG) + MySQL 8.
+* **Cliente (0612):** HTML5, CSS3 y JavaScript modular nativo (ES Modules, DOM, `localStorage`, `Intl`), sin librerías ni frameworks.
+* **Entorno y control de versiones:** Docker Compose y Git.
 
-<!--
-OBLIGATORIO según el enunciado (apartado 7). Indicad credenciales reales
-creadas por `database/instalar.php`:
+---
 
-| Rol       | Nombre           | Correo Electrónico       | Contraseña     |
-|-----------|------------------|--------------------------|----------------|
-| Profesor  | [Nombre Profesor]| profesor@aulafix.local    | ClaveSegura123 |
-| Alumno    | [Nombre Alumno 1]| alumno1@aulafix.local     | ClaveSegura123 |
-| Alumno    | [Nombre Alumno 2]| alumno2@aulafix.local     | ClaveSegura123 |
--->
+## 🚀 Cómo ejecutar el proyecto en cualquier ordenador
 
-## 4. Justificación Técnica de Decisiones de Diseño
+### Opción 1 · Con Docker (recomendada)
 
-<!--
-OBLIGATORIO para optar a Sobresaliente en 0612-RA1 y 0613-RA1 / RA2:
-1. JavaScript modular sin librerías ni frameworks:
-   - ¿Por qué <script type="module">?
-   - Carga diferida por defecto, ámbito aislado por archivo y reutilización de código mediante import/export.
-2. Mejora Progresiva (Progressive Enhancement):
-   - La aplicación genera en el servidor una tabla HTML completa mediante PHP. Si el navegador no tiene JavaScript activado, la web sigue siendo 100% funcional. Si JavaScript está disponible, lee la isla JSON (<script type="application/json">) y monta el panel interactivo.
-3. Seguridad en la salida y datos:
-   - Uso de función e() basada en htmlspecialchars(..., ENT_QUOTES, 'UTF-8') en toda salida HTML de PHP para prevenir XSS.
-   - En JavaScript: uso estricto de textContent (nunca innerHTML) para datos de usuarios.
-   - En JSON: json_encode con flags JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT para neutralizar inyecciones si una descripción contiene </script>.
-   - Consultas con PDO y sentencias preparadas siempre (prevención de SQL Injection).
-   - Protección contra CSRF con tokens de un solo uso en sesión y comparación en tiempo constante (hash_equals).
-   - Patrón Post-Redirect-Get (PRG) con código HTTP 303 para evitar reenvíos accidentales con F5.
-   - Contraseñas protegidas mediante password_hash con algoritmo Argon2id.
-4. Organización de directorios y principio de menor privilegio:
-   - Solo la carpeta public/ está expuesta al servidor web. Los archivos sensibles de configuración (config.php), lógica interna (includes/) y base de datos (database/) quedan inaccesibles desde Internet.
--->
+1. Clona el repositorio y entra en la carpeta:
+   ```bash
+   git clone https://github.com/EnmanuelFL/AulaFix.git
+   cd AulaFix
+   ```
+2. Levanta los contenedores (PHP 8.3 + Apache, MySQL 8 y phpMyAdmin):
+   ```bash
+   docker compose up -d --build
+   ```
+3. Crea las tablas y carga los datos de ejemplo:
+   ```bash
+   docker compose exec app php database/instalar.php
+   ```
+4. Abre en el navegador:
+   * **Aplicación:** http://localhost:8080
+   * **phpMyAdmin:** http://localhost:8081 (servidor `db`, usuario `aulafix`, contraseña `aulafix`)
 
-## 5. Declaración sobre el uso de Herramientas de IA
+### Opción 2 · En local (con PHP 8.3+ y MySQL 8 instalados)
 
-<!--
-OBLIGATORIO según el apartado 7 del enunciado:
-"Si usáis herramientas de IA, decid para qué en el README. En la defensa se evalúa que entendáis vuestro código."
+1. Clona el repositorio y entra en la carpeta `AulaFix`.
+2. Si tu MySQL local usa usuario/clave distintos a `root` sin contraseña, crea un archivo `.env` en la raíz con:
+   ```env
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_NAME=aulafix
+   DB_USER=tu_usuario
+   DB_PASS=tu_contraseña
+   ```
+3. Crea la base de datos y los datos de prueba:
+   ```bash
+   php database/instalar.php
+   ```
+4. Arranca el servidor integrado de PHP apuntando a la carpeta pública:
+   ```bash
+   php -S localhost:8000 -t public
+   ```
+5. Abre **http://localhost:8000** en tu navegador.
 
-Detallad de forma transparente en qué habéis empleado la asistencia de IA:
-- Generación del andamiaje (scaffolding) de archivos y plantillas de comentarios estructurados con los requisitos del proyecto.
-- Asistencia en la resolución de dudas teóricas y sintaxis (Date/Intl, transacciones PDO, delegación de eventos).
-- Todo el código funcional ha sido implementado, revisado y comprendido por los autores para su defensa oral.
--->
+---
 
+## 👤 Usuarios de prueba
+
+Todos los usuarios iniciales creados por `database/instalar.php` comparten la contraseña **`AulaFix2026`**:
+
+| Rol | Nombre | Correo | Contraseña |
+| :--- | :--- | :--- | :--- |
+| **Profesor** | Pablo Profesor | `profesor@aulafix.local` | `AulaFix2026` |
+| **Alumno** | Lucía Alumna | `lucia@aulafix.local` | `AulaFix2026` |
+| **Alumno** | Marcos Alumno | `marcos@aulafix.local` | `AulaFix2026` |
+
+---
+
+## 🌿 Uso de ramas en Git
+
+* **`main`**: Rama principal con la versión estable y final lista para entrega y defensa.
+* **`dev`**: Rama de integración donde se unifican y prueban conjuntamente los avances de Servidor y Cliente antes de pasar a `main`.
+* **`dev-enma`**: Rama de desarrollo personal para la parte de Servidor (PHP, base de datos, sesiones, seguridad y Docker).
+* **`dev-german`**: Rama de desarrollo personal para la parte de Cliente (módulos JavaScript, manipulación del DOM y estilos CSS).
