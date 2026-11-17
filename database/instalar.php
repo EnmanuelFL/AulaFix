@@ -65,6 +65,7 @@ try {
         ['PROY-01', 'Proyector del aula'],
         ['IMP-01',  'Impresora del pasillo'],
         ['RED-01',  'Switch de red del aula'],
+        ['Otros..', 'Otros equipos del aula'],
     ];
     $stEquipo = $pdo->prepare('INSERT INTO equipos (codigo, descripcion) VALUES (?, ?)');
     $idEquipo = []; // código => id

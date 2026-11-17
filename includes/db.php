@@ -88,7 +88,8 @@ function crearUsuario(string $nombre, string $email, string $hash): int
  */
 function listarEquipos(): array
 {
-    $filas = bd()->query('SELECT id, codigo, descripcion FROM equipos ORDER BY codigo')->fetchAll();
+    // Se fuerza que 'Otros..' aparezca siempre al final del desplegable
+    $filas = bd()->query("SELECT id, codigo, descripcion FROM equipos ORDER BY (codigo = 'Otros..') ASC, codigo ASC")->fetchAll();
     return array_map(static fn(array $f): array => [
         'id'          => (int) $f['id'],
         'codigo'      => $f['codigo'],

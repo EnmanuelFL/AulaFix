@@ -179,7 +179,10 @@ require_once __DIR__ . '/../includes/cabecera.php';
         <?php endif; ?>
     </div>
 
-    <button type="submit">Enviar incidencia</button>
+    <div class="acciones-formulario">
+        <button type="submit">Enviar incidencia</button>
+        <a href="incidencias.php" class="boton boton-secundario">Cancelar</a>
+    </div>
 </form>
 
 <?php require_once __DIR__ . '/../includes/pie.php'; ?>
