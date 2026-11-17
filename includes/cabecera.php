@@ -74,7 +74,7 @@
                 <?php if ($usuarioCabecera !== null): ?>
                     <li><a href="incidencias.php">Incidencias</a></li>
                     <li><a href="nueva.php">Nueva Incidencia</a></li>
-                    <li><?= e($usuarioCabecera['nombre']) ?> (<?= e($usuarioCabecera['rol']) ?>)</li>
+                    <li><?= e($usuarioCabecera['nombre']) ?></li>
                     <!-- Cerrar sesión es un formulario POST con token CSRF, no un enlace: así nadie puede cerrártela desde otra web -->
                     <li>
                         <form method="post" action="logout.php">
