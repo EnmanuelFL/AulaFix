@@ -1,73 +1,116 @@
-<?php
+<?php declare(strict_types=1);
 /*
  * ============================================================================
  *  AulaFix · public/registro.php
  * ============================================================================
- *  MÓDULO: 0613 · Servidor
- *  HITO:   Entrega final
- *  RA:     0613-RA3 (validación en el servidor, errores por campo, PRG, CSRF)
- *          0613-RA4 (password_hash con Argon2id)
- *          0613-RA6 (INSERT con sentencia preparada)
- *
- *  ¿QUÉ ES ESTE FICHERO?
- *  La página para crear una cuenta nueva. Muestra el formulario (GET) y lo
- *  procesa (POST). Solo accesible SIN sesión.
- *
- * ----------------------------------------------------------------------------
- *  REQUISITOS (según el enunciado, apartado 3.2)
- * ----------------------------------------------------------------------------
- *  [ ] declare(strict_types=1); y comentario de cabecera.
- *  [ ] Campos: nombre, correo, contraseña y repetición de la contraseña.
- *  [ ] Validación EN EL SERVIDOR:
- *        · nombre: de 2 a 80 caracteres.
- *        · correo: formato válido Y que no esté ya registrado.
- *        · contraseña: al menos 10 caracteres, con letras Y números.
- *        · repetición: igual que la contraseña.
- *  [ ] Errores mostrados JUNTO A CADA CAMPO y se conserva lo escrito.
- *  [ ] Contraseña guardada con password_hash() usando Argon2id.
- *  [ ] Formulario POST + token CSRF + PRG (redirección al terminar bien).
- *  [ ] Toda la salida escapada con e().
- *  [ ] Si ya hay sesión iniciada, no tiene sentido registrarse → redirigir.
- *
- * ----------------------------------------------------------------------------
- *  ESTRUCTURA SUGERIDA DE LA PÁGINA
- * ----------------------------------------------------------------------------
- *   1. Includes (config, funciones, db) y arrancar sesión.
- *   2. Variables iniciales: $errores = [] y $datos con los campos vacíos.
- *   3. Si es POST: comprobar CSRF → leer campos → validar → si no hay
- *      errores: guardar + mensaje flash + redirigir (PRG).
- *   4. Definir $titulo, incluir cabecera.php, pintar el formulario, incluir pie.php.
- *
- * ----------------------------------------------------------------------------
- *  PISTAS
- * ----------------------------------------------------------------------------
- *  - ¿Qué ROL tiene una cuenta nueva? Pensadlo bien: si el rol viniera del
- *    formulario, cualquiera podría registrarse como profesor enviándolo a
- *    mano. ¿Cómo se crean entonces los profesores? (pista: instalar.php)
- *  - ¿Se debe volver a rellenar el campo contraseña cuando hay errores?
- *    (Nunca se devuelve una contraseña al navegador.)
- *  - "Correo no repetido": comprobadlo con una consulta, pero recordad que
- *    la restricción UNIQUE de MySQL es la última barrera. ¿Qué excepción
- *    lanza PDO si se viola? (Investigad el código de error 23000.)
- *  - ¿Dónde redirigís al terminar? Lo habitual es a login.php con un mensaje
- *    tipo «Cuenta creada, ya puedes iniciar sesión».
- *  - Atributos HTML como required, minlength, maxlength o type="email"
- *    ayudan al usuario, PERO no sustituyen a la validación del servidor
- *    (se pueden quitar con el inspector). Probadlo.
- *  - Usad <label for="..."> en cada campo (accesibilidad) y
- *    autocomplete="new-password" en las contraseñas.
- *  - Reutilizad las funciones de validación de includes/funciones.php:
- *    la rúbrica valora "funciones reutilizables para leer y validar campos".
- *
- * ----------------------------------------------------------------------------
- *  TECNOLOGÍAS Y CONCEPTOS PARA INVESTIGAR
- * ----------------------------------------------------------------------------
- *  - password_hash + PASSWORD_ARGON2ID: https://www.php.net/manual/es/function.password-hash.php
- *  - filter_var + FILTER_VALIDATE_EMAIL
- *  - preg_match: https://www.php.net/manual/es/function.preg-match.php
- *  - mb_strlen (¿por qué no strlen con "Ñandú"?)
- *  - PDOException y getCode()
- *  - Patrón Post-Redirect-Get (PRG) y código 303
- *  - Atributo autocomplete en formularios (MDN)
+ *  Página de registro: muestra el formulario (GET) y crea la cuenta (POST).
+ *  Valida todo en el servidor, guarda la contraseña con Argon2id y usa CSRF + PRG.
+ *  Las cuentas nuevas siempre son de alumno (el rol nunca viene del formulario).
  */
 
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/funciones.php';
+require_once __DIR__ . '/../includes/db.php';
+
+// Si ya hay sesión, no tiene sentido registrarse otra vez
+if (usuarioActual() !== null) {
+    redirigir('incidencias.php');
+}
+
+$errores = [];
+$datos = ['nombre' => '', 'email' => ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarCsrf(leerPost('csrf'));
+
+    $datos['nombre'] = leerPost('nombre');
+    $datos['email']  = aMinusculas(leerPost('email'));
+    // Las contraseñas NO se recortan con trim(): los espacios cuentan como carácter
+    $clave  = (string) ($_POST['clave'] ?? '');
+    $clave2 = (string) ($_POST['clave2'] ?? '');
+
+    if (!longitudValida($datos['nombre'], 2, 80)) {
+        $errores['nombre'] = 'El nombre debe tener entre 2 y 80 caracteres.';
+    }
+
+    if (!emailValido($datos['email'])) {
+        $errores['email'] = 'Introduce un correo válido.';
+    } elseif (buscarUsuarioPorEmail($datos['email']) !== null) {
+        $errores['email'] = 'Ese correo ya está registrado.';
+    }
+
+    // Mínimo 10 caracteres con al menos una letra y un número (dos comprobaciones sencillas)
+    if (longitudTexto($clave) < 10 || !preg_match('/[A-Za-z]/', $clave) || !preg_match('/\d/', $clave)) {
+        $errores['clave'] = 'La contraseña debe tener al menos 10 caracteres, con letras y números.';
+    }
+
+    if ($clave2 !== $clave) {
+        $errores['clave2'] = 'Las contraseñas no coinciden.';
+    }
+
+    if (empty($errores)) {
+        try {
+            // Argon2id: algoritmo lento a propósito para que sea muy costoso averiguar contraseñas por fuerza bruta
+            crearUsuario($datos['nombre'], $datos['email'], password_hash($clave, PASSWORD_ARGON2ID));
+            ponerFlash('Cuenta creada correctamente. Ya puedes iniciar sesión.');
+            redirigir('login.php');
+        } catch (PDOException $e) {
+            // 23000 = violación de UNIQUE: otro registro con el mismo correo se coló justo antes que nosotros
+            if ($e->getCode() === '23000') {
+                $errores['email'] = 'Ese correo ya está registrado.';
+            } else {
+                throw $e;
+            }
+        }
+    }
+}
+
+$titulo = 'Registro';
+$scripts = [];
+require_once __DIR__ . '/../includes/cabecera.php';
+?>
+
+<h1>Crear cuenta</h1>
+
+<form method="post" action="">
+    <input type="hidden" name="csrf" value="<?= e(tokenCsrf()) ?>">
+
+    <div>
+        <label for="nombre">Nombre:</label><br>
+        <input type="text" id="nombre" name="nombre" value="<?= e($datos['nombre']) ?>" autocomplete="name">
+        <?php if (isset($errores['nombre'])): ?>
+            <p class="error"><?= e($errores['nombre']) ?></p>
+        <?php endif; ?>
+    </div>
+
+    <div>
+        <label for="email">Correo electrónico:</label><br>
+        <input type="email" id="email" name="email" value="<?= e($datos['email']) ?>" autocomplete="email">
+        <?php if (isset($errores['email'])): ?>
+            <p class="error"><?= e($errores['email']) ?></p>
+        <?php endif; ?>
+    </div>
+
+    <!-- Las contraseñas nunca se devuelven al navegador, por eso estos campos no llevan value -->
+    <div>
+        <label for="clave">Contraseña (mínimo 10 caracteres, con letras y números):</label><br>
+        <input type="password" id="clave" name="clave" autocomplete="new-password">
+        <?php if (isset($errores['clave'])): ?>
+            <p class="error"><?= e($errores['clave']) ?></p>
+        <?php endif; ?>
+    </div>
+
+    <div>
+        <label for="clave2">Repite la contraseña:</label><br>
+        <input type="password" id="clave2" name="clave2" autocomplete="new-password">
+        <?php if (isset($errores['clave2'])): ?>
+            <p class="error"><?= e($errores['clave2']) ?></p>
+        <?php endif; ?>
+    </div>
+
+    <button type="submit">Registrarme</button>
+</form>
+
+<p>¿Ya tienes cuenta? <a href="login.php">Inicia sesión</a></p>
+
+<?php require_once __DIR__ . '/../includes/pie.php'; ?>

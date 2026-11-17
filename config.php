@@ -59,20 +59,45 @@
  *  - ¿Por qué utf8mb4 y no utf8 en MySQL? (caracteres de 4 bytes, emojis)
  */
 
-// Aqui usamos las variables de entorno del .env para que el servidor sepa 
-// donde conectarse y con que usuario, si no existe ninguna variable de entorno
-// se usaran las que estan por defecto
-$env = file_exists(__DIR__ . '/.env') ? (parse_ini_file(__DIR__ . '/.env') ?: []) : [];
-define('DB_HOST', $env['DB_HOST'] ?? (getenv('DB_HOST') ?: '127.0.0.1'));
-define('DB_USER', $env['DB_USER'] ?? (getenv('DB_USER') ?: 'root'));
-define('DB_PASS', $env['DB_PASS'] ?? (getenv('DB_PASS') ?: ''));
-define('DB_NAME', $env['DB_NAME'] ?? (getenv('DB_NAME') ?: 'aulafix'));
-define('DB_PORT', $env['DB_PORT'] ?? (getenv('DB_PORT') ?: '3306'));
-define('DB_CHARSET', $env['DB_CHARSET'] ?? (getenv('DB_CHARSET') ?: 'utf8mb4'));
+// Zona horaria de la aplicación: PHP y MySQL deben usar la misma para que las fechas coincidan
+date_default_timezone_set('Europe/Madrid');
 
-// Aqui se definen las listas blancas
-const CATEGORIAS = ['hardware','software','red','otro'];
+// En local se leen los datos de conexión de .env (que NO se sube a Git por el .gitignore)
+// Si el fichero no existe (Docker, ordenador del profesor), $env queda vacío
+$env = file_exists(__DIR__ . '/.env') ? (parse_ini_file(__DIR__ . '/.env') ?: []) : [];
+
+/**
+ * Devuelve un valor de configuración.
+ * Prioridad: variable de entorno real (Docker) > fichero .env > valor por defecto.
+ * Así el mismo código funciona en cualquier equipo sin tocar nada.
+ *
+ * @param string $clave      Nombre de la variable (ej. DB_HOST).
+ * @param string $porDefecto Valor que se usa si no existe en ningún sitio.
+ * @param array  $env        Contenido del .env ya leído.
+ * @return string
+ */
+function valorEntorno(string $clave, string $porDefecto, array $env): string
+{
+    $real = getenv($clave);
+    if ($real !== false) {
+        return $real;
+    }
+    return isset($env[$clave]) ? (string) $env[$clave] : $porDefecto;
+}
+
+// Datos de conexión a MySQL (nunca se escriben contraseñas reales en el código)
+define('DB_HOST', valorEntorno('DB_HOST', '127.0.0.1', $env));
+define('DB_PORT', valorEntorno('DB_PORT', '3306', $env));
+define('DB_NAME', valorEntorno('DB_NAME', 'aulafix', $env));
+define('DB_USER', valorEntorno('DB_USER', 'root', $env));
+define('DB_PASS', valorEntorno('DB_PASS', '', $env));
+define('DB_CHARSET', 'utf8mb4'); // utf8mb4 admite tildes, ñ y emojis (utf8 de MySQL no)
+
+// Listas blancas: los únicos valores que acepta la aplicación (coinciden con los ENUM de MySQL)
+const CATEGORIAS = ['hardware', 'software', 'red', 'otro'];
 const PRIORIDADES = ['baja', 'media', 'alta'];
-const ESTADOS = ['abierta', 'en_curso','resuelta'];
+const ESTADOS = ['abierta', 'en_curso', 'resuelta'];
 const ROLES = ['alumno', 'profesor'];
+
+// Días que dura la cookie «Recordar mi correo»
 const COOKIES_RECORDAR_DIAS = 30;

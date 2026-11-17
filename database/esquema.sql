@@ -1,68 +1,69 @@
 -- ============================================================================
 --  AulaFix · database/esquema.sql
 -- ============================================================================
---  MÓDULO: 0613 · Servidor
---  HITO:   Entrega final
---  RA:     0613-RA6 (restricciones en las tablas: UNIQUE, ENUM, claves foráneas)
---
---  ¿QUÉ ES ESTE FICHERO?
---  El script SQL (MySQL 8) que crea las 4 tablas de la aplicación. No lleva
---  datos: los datos de ejemplo los mete database/instalar.php, que ejecuta
---  este fichero primero.
---
--- ----------------------------------------------------------------------------
---  REQUISITOS (según el enunciado, apartado 4.2)
--- ----------------------------------------------------------------------------
---  [ ] Comentario de cabecera: qué hace el script.
---  [ ] Tabla usuarios:    id, nombre, email, clave_hash, rol, creado_en
---        · email ÚNICO (UNIQUE)
---        · rol solo puede ser 'alumno' o 'profesor'
---  [ ] Tabla equipos:     id, codigo, descripcion
---        · codigo ÚNICO (PC-01, PROY-01, IMP-01...)
---  [ ] Tabla incidencias: id, equipo_id, usuario_id, categoria, prioridad,
---                         descripcion, estado, creada_en, actualizada_en
---        · claves foráneas hacia equipos y usuarios
---        · categoria: hardware · software · red · otro
---        · prioridad: baja · media · alta
---        · estado:    abierta · en_curso · resuelta
---  [ ] Tabla historial:   id, incidencia_id, usuario_id, estado_anterior,
---                         estado_nuevo, comentario, creado_en
---        · se borra con su incidencia → ON DELETE CASCADE
---  [ ] Comentad las consultas / tablas (la rúbrica lo exige para el Notable).
---
--- ----------------------------------------------------------------------------
---  PISTAS
--- ----------------------------------------------------------------------------
---  - Orden de creación: primero las tablas que NO dependen de nadie
---    (usuarios, equipos), luego incidencias y por último historial.
---    ¿Por qué? Pensad qué pasa si creáis una clave foránea hacia una tabla
---    que todavía no existe.
---  - Si el script empieza borrando las tablas (DROP TABLE IF EXISTS ...)
---    para poder reinstalar, el orden de borrado es el INVERSO. ¡Cuidado!
---    Esto elimina los datos: solo tiene sentido en desarrollo.
---  - Los "valores permitidos" se pueden forzar con ENUM('a','b','c').
---    Tienen que coincidir EXACTAMENTE con las listas de config.php.
---  - Motor InnoDB (es el que admite claves foráneas y transacciones) y
---    juego de caracteres utf8mb4.
---  - clave_hash: un hash Argon2id ocupa ~100 caracteres y puede cambiar en el
---    futuro. ¿Qué tamaño de VARCHAR recomienda la documentación de
---    password_hash()?
---  - Fechas: DATETIME o TIMESTAMP con DEFAULT CURRENT_TIMESTAMP.
---    Para actualizada_en, investigad ON UPDATE CURRENT_TIMESTAMP.
---  - ¿Qué debe pasar con las incidencias si se borra un usuario o un equipo?
---    (ON DELETE RESTRICT / CASCADE / SET NULL). Decididlo y comentad por qué.
---  - Probad el script en phpMyAdmin o con la consola de MySQL antes de
---    meterlo en instalar.php.
---
--- ----------------------------------------------------------------------------
---  TECNOLOGÍAS Y CONCEPTOS PARA INVESTIGAR
--- ----------------------------------------------------------------------------
---  - CREATE TABLE (MySQL 8): https://dev.mysql.com/doc/refman/8.0/en/create-table.html
---  - Tipo ENUM: https://dev.mysql.com/doc/refman/8.0/en/enum.html
---  - FOREIGN KEY y ON DELETE CASCADE:
---    https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
---  - Restricción UNIQUE e índices
---  - DEFAULT CURRENT_TIMESTAMP / ON UPDATE CURRENT_TIMESTAMP
---  - Motor InnoDB y charset utf8mb4 (COLLATE utf8mb4_unicode_ci o utf8mb4_0900_ai_ci)
+--  Crea las 4 tablas de la aplicación en MySQL 8 (motor InnoDB, utf8mb4).
+--  No lleva datos: los carga database/instalar.php después de ejecutar este script.
+--  Los valores de los ENUM coinciden con las listas blancas de config.php.
+--  Se borran primero las tablas (en orden inverso a sus dependencias) para poder
+--  reinstalar. OJO: esto elimina los datos, solo se usa en desarrollo.
 -- ============================================================================
 
+DROP TABLE IF EXISTS historial;
+DROP TABLE IF EXISTS incidencias;
+DROP TABLE IF EXISTS equipos;
+DROP TABLE IF EXISTS usuarios;
+
+-- Usuarios: el email es único (no puede haber dos cuentas con el mismo correo)
+-- clave_hash guarda el hash Argon2id, nunca la contraseña (255 es el tamaño recomendado)
+CREATE TABLE usuarios (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    nombre     VARCHAR(80)  NOT NULL,
+    email      VARCHAR(190) NOT NULL,
+    clave_hash VARCHAR(255) NOT NULL,
+    rol        ENUM('alumno', 'profesor') NOT NULL DEFAULT 'alumno',
+    creado_en  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_usuarios_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Equipos del aula: el código es único (PC-01, PROY-01...)
+CREATE TABLE equipos (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    codigo      VARCHAR(20)  NOT NULL,
+    descripcion VARCHAR(150) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_equipos_codigo (codigo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Incidencias: claves foráneas a equipos y usuarios
+-- ON DELETE RESTRICT impide borrar un equipo o un usuario que tenga incidencias (así no se pierde información)
+-- categoria, prioridad y estado solo admiten los valores permitidos (ENUM)
+CREATE TABLE incidencias (
+    id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    equipo_id      INT UNSIGNED NOT NULL,
+    usuario_id     INT UNSIGNED NOT NULL,
+    categoria      ENUM('hardware', 'software', 'red', 'otro') NOT NULL,
+    prioridad      ENUM('baja', 'media', 'alta') NOT NULL,
+    descripcion    VARCHAR(500) NOT NULL,
+    estado         ENUM('abierta', 'en_curso', 'resuelta') NOT NULL DEFAULT 'abierta',
+    creada_en      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizada_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_incidencias_equipo  FOREIGN KEY (equipo_id)  REFERENCES equipos (id)  ON DELETE RESTRICT,
+    CONSTRAINT fk_incidencias_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Historial de cambios de estado de cada incidencia
+-- ON DELETE CASCADE: al borrar una incidencia se borra automáticamente su historial
+CREATE TABLE historial (
+    id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    incidencia_id   INT UNSIGNED NOT NULL,
+    usuario_id      INT UNSIGNED NOT NULL,
+    estado_anterior ENUM('abierta', 'en_curso', 'resuelta') NOT NULL,
+    estado_nuevo    ENUM('abierta', 'en_curso', 'resuelta') NOT NULL,
+    comentario      VARCHAR(500) NOT NULL,
+    creado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_historial_incidencia FOREIGN KEY (incidencia_id) REFERENCES incidencias (id) ON DELETE CASCADE,
+    CONSTRAINT fk_historial_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios (id)    ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

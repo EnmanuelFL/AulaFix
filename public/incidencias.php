@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types= 1);
 /*
  * ============================================================================
  *  AulaFix · public/incidencias.php
@@ -70,4 +70,49 @@
  *  - Mejora progresiva (progressive enhancement)
  *  - Roles ARIA: tablist, tab · aria-sort · aria-live (MDN)
  */
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/funciones.php';
+require_once __DIR__ . '/../includes/db.php';
+
+// Solo pueden ver el listado los usuarios con sesión (si no, redirige a login.php)
+exigirSesion();
+
+// Las incidencias salen de MySQL con el formato exacto del «contrato» JSON del cliente
+$incidencias = listarIncidencias();
+
+$titulo = 'Incidencias';
+$scripts = ['js/main.js'];
+require_once __DIR__ . '/../includes/cabecera.php';
+?>
+<h1>Tablon de incidencias</h1>
+<table id="tabla-php">
+    <thead>
+        <tr>
+            <th>Equipo</th>
+            <th>Categoria</th>
+            <th>Prioridad</th>      
+            <th>Descripcion</th>
+            <th>Estado</th>
+            <th>Autor</th>
+            <th>Fecha</th>
+            <th>Detalle</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach($incidencias as $inc): ?>
+            <tr>
+                <td><?= e($inc['equipo']) ?></td>
+                <td><?= e($inc['categoria']) ?></td>
+                <td><?= e($inc['prioridad']) ?></td>
+                <td><?= e($inc['descripcion']) ?></td>
+                <td><?= e($inc['estado']) ?></td>
+                <td><?= e($inc['autor']) ?></td>
+                <td><?= e($inc['creada_en']) ?></td>
+                <td><a href="incidencia.php?id=<?= e($inc['id']) ?>">Ver</a></td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+<script id="datos-incidencias" type="application/json"><?= jsonSeguro($incidencias) ?></script>
+<?php require __DIR__ .'/../includes/pie.php'?>
 
